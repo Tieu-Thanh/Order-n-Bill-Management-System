@@ -5,4 +5,4 @@ menu_bp = Blueprint('menu', __name__, static_folder='static', template_folder='t
 
 @menu_bp.route('/')
 def index():
-    return "<h1>Menu</h1>"
+    return "<h1>Menu Page</h1>"
