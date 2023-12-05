@@ -4,3 +4,5 @@ flask-moment
 flask-wtf
 firebase-admin
 pyrebase4
+Flask-RESTful
+google-cloud-firestore
