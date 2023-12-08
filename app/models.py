@@ -1,4 +1,6 @@
 # models.py
+import hashlib
+import uuid
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -50,3 +52,20 @@ class MenuItem:
             is_on_stock=data.get('isOnStock', True),
             category=data.get('category')
         )
+
+
+class Diner:
+    def __init__(self, name, gender, phone_number, birthday):
+        self.name = name
+        self.phone_number = phone_number
+        self.gender = gender
+        self.birthday = birthday
+        # self.id = id or self._generate_id()
+
+    def to_dict(self):
+        return {
+            'name': self.name,
+            'phone_number': self.phone_number,
+            'gender': self.gender,
+            'birthday': self.birthday
+        }

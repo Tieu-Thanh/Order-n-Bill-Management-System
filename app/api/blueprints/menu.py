@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models import MenuItem
+from app.models import MenuItem
 
 
 menu_bp = Blueprint('menu', __name__)
