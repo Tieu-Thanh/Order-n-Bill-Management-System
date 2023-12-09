@@ -1,4 +1,6 @@
 import os
+from firebase_admin import credentials, firestore
+import firebase_admin
 
 
 class Config:
@@ -16,6 +18,11 @@ class Config:
     FIREBASE_MESSAGING_SENDER_ID = "553429788733"
     FIREBASE_APP_ID = "1:553429788733:web:6cafb5155afa9485ae2254"
     FIREBASE_MEASUREMENT_ID = "G-8HRHW115CB"
+
+    # Initialize Firebase Admin SDK
+    cred = credentials.Certificate('key.json')
+    firebase_admin.initialize_app(cred)
+    FIRESTORE = firestore.client()
 
 
 class DevelopmentConfig(Config):

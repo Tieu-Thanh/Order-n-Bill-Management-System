@@ -1,6 +1,9 @@
 from flask import Blueprint
+from flask_restful import Api
 from app.api.resources.diner_resource import DinerResource
 
 diner_api_bp = Blueprint('diner_api', __name__)
+api = Api(diner_api_bp)
 
-diner_api_bp.add_url_rule('/register', view_func=DinerResource.as_view('diner_resource'))
+api.add_resource(DinerResource, '/diners/register', endpoint='diner_registration')
+
