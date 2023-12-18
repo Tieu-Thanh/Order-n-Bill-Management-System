@@ -7,11 +7,13 @@ from flask import request
 class MenuItemResource(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
+        self.parser.add_argument('item_id', type=str, required=True)
         self.parser.add_argument('name', type=str, help='Menu item name', required=True)
         self.parser.add_argument('description', type=str, help='Menu item description', required=True)
         self.parser.add_argument('price', type=float, help='Menu item price', required=True)
         self.parser.add_argument('is_on_stock', type=bool, help='Menu item', default=True)
         self.parser.add_argument('category', type=str, help='Menu item category', required=True)
+        self.parser.add_argument('image_url', type=str, help='Menu item image', required=False)
 
     def post(self):
         args = self.parser.parse_args()
@@ -35,14 +37,15 @@ class MenuItemResource(Resource):
 class MenuItemDetailResource(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('item_id', type=str)
         self.reqparse.add_argument('name', type=str, help='Menu item name', required=True)
         self.reqparse.add_argument('description', type=str, help='Menu item description', required=True)
-        self.reqparse.add_argument('price', type=str, help='Menu item price', required=True)
+        self.reqparse.add_argument('price', type=float, help='Menu item price', required=True)
         self.reqparse .add_argument('is_on_stock', type=bool, help='Menu')
         self.reqparse .add_argument('category', type=str, help='Menu')
+        self.reqparse.add_argument('image_url', type=str, help='Menu item')
 
     def get(self, menu_item_id):
-        print(f"Received menu_item_id: {menu_item_id}")
         menu_item = MenuItem.get_item(menu_item_id)
         if menu_item:
             return {'menuItem': menu_item.to_dict()}, 200
