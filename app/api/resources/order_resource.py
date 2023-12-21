@@ -46,7 +46,7 @@ class OrderItemResource(Resource):
                 return {"message": "Order item not found"}, 404
 
             # Attempt update or set based on field existence
-            order_item_ref.update({'quantity': new_quantity, 'status': new_status})
+            order_item_ref.update({ 'status': new_status})
             return {'message': 'Order item updated'}, 200
 
         except Exception as e:
