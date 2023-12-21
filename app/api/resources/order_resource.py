@@ -34,24 +34,24 @@ class OrderItemResource(Resource):
     def put(self, order_id, menu_item_id):
         try:
             args = self.parser.parse_args()
+            new_quantity = args['quantity']
             new_status = args['status']
 
-            # Update the status field of the order item
+            # Update the quantity field of the order item
             order_items_ref = db.collection('orders').document(order_id).collection('order_items')
             order_item_ref = order_items_ref.document(menu_item_id)
 
-            order_item_doc = order_items_ref.get()
-            # Attempt update or set based on field existence
-            if 'status' in order_item_doc.to_dict():
-                order_item_ref.update({'status': new_status})
-            else:
-                order_item_ref.set({'status': new_status})
+            order_item_doc = order_item_ref.get()
+            if not order_item_doc.exists:
+                return {"message": "Order item not found"}, 404
 
+            # Attempt update or set based on field existence
+            order_item_ref.update({'quantity': new_quantity, 'status': new_status})
             return {'message': 'Order item updated'}, 200
 
         except Exception as e:
             print(f"An error occurred: {e}")
-            return {"message": "Internal server error"}, 500
+            return {"message": str(e)}, 500
 
 
 class OrderResource(Resource):
