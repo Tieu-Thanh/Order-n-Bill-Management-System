@@ -104,13 +104,12 @@ class Diner:
 
 
 class OrderItem:
-    def __init__(self, order_id, menu_item_id, quantity, special_request, status="pending", amount=None):
-        self.order_id = order_id
+    def __init__(self, menu_item_id, quantity, special_request, status="pending", amount=None):
         self.menu_item_id = menu_item_id
         self.quantity = quantity
         self.special_request = special_request
         self.status = status
-        self.amount = amount
+        self.amount = self.calculate_total()
 
     def calculate_total(self):
         menu_doc = db.collection('menu_items').document(self.menu_item_id).get()
@@ -121,7 +120,6 @@ class OrderItem:
     def to_dict(self):
         self.calculate_total()  # update amount before serialization.
         return {
-            'order_id': self.order_id,
             'menu_item_id': self.menu_item_id,
             'quantity': self.quantity,
             'special_request': self.special_request,
@@ -132,7 +130,6 @@ class OrderItem:
     @classmethod
     def from_dict(cls, data):
         return cls(
-            order_id=data.get('order_id'),
             menu_item_id=data.get('menu_item_id'),
             quantity=data.get('quantity'),
             special_request=data.get('special_request'),
@@ -142,50 +139,25 @@ class OrderItem:
 
 
 class Order:
-    def __init__(self, order_id, order_items, total_price, status="pending"):
+    def __init__(self, order_id, total_price, status="pending"):
         self.order_id = order_id
-        self.order_items = order_items
         self.total_price = total_price
         self.status = status
 
     def to_dict(self):
-        order_items_data = [item.to_dict() for item in self.order_items]
         return {
             "order_id": self.order_id,
-            "order_items": order_items_data,
             "total_price": self.total_price,
             "status": self.status,
         }
 
     @classmethod
     def from_dict(cls, data):
-        order_items_data = data.get('order_items', [])
-        order_items = [OrderItem.from_dict(item) for item in order_items_data]
-
         return cls(
                 data["order_id"],
-                order_items,
                 data["total_price"],
                 data["status"]
             )
-
-    def add_order_item(self, menu_item_id, quantity, special_request="", initial_status="Pending"):
-        order_item = OrderItem(
-            order_id=self.order_id,
-            menu_item_id=menu_item_id,
-            quantity=quantity,
-            special_request=special_request,
-            status=initial_status,
-        )
-        order_item.calculate_total()
-        self.order_items.append(order_item)
-        self.total_price += order_item.amount
-
-        order_doc = db.collection("orders").document(self.order_id).get()
-        order_doc.update({
-            'order_items': [item.to_dict() for item in self.order_items],
-            'total_price': self.total_price
-        })
 
     def update_status(self, new_status):
         self.status = new_status
@@ -195,11 +167,25 @@ class Order:
             'status': self.status
         })
 
-    def calculate_total_price(self):
-        total_price = 0.0
-        for item in self.order_items:
-            total_price += item.price
-        return total_price
+    # def calculate_total_price(self):
+    #     total_price = 0.0
+    #     for item in self.order_items:
+    #         total_price += item.price
+    #     return total_price
+
+    def get_order_items(self):
+        order_items_ref = db.collection('orders').document(self.order_id).collection('order_items')
+        order_items = order_items_ref.stream()
+        return [OrderItem.from_dict(item.to_dict()) for item in order_items]
+
+    # def get_ordered_item_by_id(self, order_item_id):
+    #     order_items_ref = db.collection('orders').document(self.order_id).collection('order_items')
+    #     query = order_items_ref.where('menu_item_id', '==', order_item_id).limit(1).stream()
+    #
+    #     for item_doc in query:
+    #         return OrderItem.from_dict(item_doc.to_dict())
+    #
+    #     return None
 
     @classmethod
     def get_orders(cls):
@@ -211,12 +197,20 @@ class Order:
     def get_detail_order(cls, order_id):
         order_ref = db.collection('orders')
         doc_ref = order_ref.document(order_id).get()
-        if doc_ref.exists:
-            order = cls.from_dict(doc_ref.to_dict())
-            order.id = doc_ref.id
-            return order
-        else:
+
+        if not doc_ref.exists:
             return None
+
+        order = cls.from_dict(doc_ref.to_dict())
+        order.id = doc_ref.id
+
+        # Fetch order items
+        order_items = order.get_order_items()
+
+        # Assign order items to the order instance
+        order.order_items = order_items
+
+        return order
 
     def delete(self):
         order_ref = db.collection('orders').document(self.order_id).delete()
@@ -242,7 +236,6 @@ class Table:
             data["capacity"],
             data["status"]
         )
-
 
 
 class Bill:
