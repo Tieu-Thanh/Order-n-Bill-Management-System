@@ -1,6 +1,7 @@
 from flask import request
 from flask_restful import Resource, reqparse
-from app.models import Order, OrderItem, db
+from app.models import Order, db
+from app.api.models.OrderItem import OrderItem
 
 
 class OrderItemResource(Resource):
@@ -37,16 +38,23 @@ class OrderItemResource(Resource):
             new_quantity = args['quantity']
             new_status = args['status']
 
-            # Update the quantity field of the order item
-            order_items_ref = db.collection('orders').document(order_id).collection('order_items')
-            order_item_ref = order_items_ref.document(menu_item_id)
+            # # Update the quantity field of the order item
+            # order_items_ref = db.collection('orders').document(order_id).collection('order_items')
+            # order_item_ref = order_items_ref.document(menu_item_id)
+            #
+            # order_item_doc = order_item_ref.get()
+            # if not order_item_doc.exists:
+            #     return {"message": "Order item not found"}, 404
+            #
+            # # Attempt update or set based on field existence
+            # order_item_ref.update({'status': new_status})
 
-            order_item_doc = order_item_ref.get()
-            if not order_item_doc.exists:
+            order_item = OrderItem.get_by_id(order_id, menu_item_id)
+            if not order_item:
                 return {"message": "Order item not found"}, 404
 
-            # Attempt update or set based on field existence
-            order_item_ref.update({ 'status': new_status})
+            order_item.update_status(new_status, order_id)
+
             return {'message': 'Order item updated'}, 200
 
         except Exception as e:

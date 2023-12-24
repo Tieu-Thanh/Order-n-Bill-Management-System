@@ -1,6 +1,7 @@
 from flask_restful import Resource, reqparse
 from firebase_admin import firestore
-from app.models import MenuItem
+# from app.models import MenuItem
+from app.api.models.MenuItem import MenuItem
 from flask import request
 
 
