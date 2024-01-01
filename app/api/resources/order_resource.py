@@ -7,7 +7,7 @@ from app.api.models.OrderItem import OrderItem
 class OrderItemResource(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument('quantity', type=int, help='Quantity', required=True)
+        self.parser.add_argument('quantity', type=int, help='Quantity')
         self.parser.add_argument('special_request', type=str, help='Special request', default="")
         self.parser.add_argument('status', type=str, help='Status', default="pending")
 
@@ -37,17 +37,6 @@ class OrderItemResource(Resource):
             args = self.parser.parse_args()
             new_quantity = args['quantity']
             new_status = args['status']
-
-            # # Update the quantity field of the order item
-            # order_items_ref = db.collection('orders').document(order_id).collection('order_items')
-            # order_item_ref = order_items_ref.document(menu_item_id)
-            #
-            # order_item_doc = order_item_ref.get()
-            # if not order_item_doc.exists:
-            #     return {"message": "Order item not found"}, 404
-            #
-            # # Attempt update or set based on field existence
-            # order_item_ref.update({'status': new_status})
 
             order_item = OrderItem.get_by_id(order_id, menu_item_id)
             if not order_item:
