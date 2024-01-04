@@ -3,10 +3,11 @@ from .OrderItem import OrderItem
 
 
 class Order:
-    def __init__(self, order_id, total_price, status="pending"):
+    def __init__(self, order_id, total_price, billID="",  status="pending"):
         self.order_id = order_id
         self.total_price = total_price
         self.status = status
+        self.billID = billID
 
     def to_dict(self):
         return {
@@ -23,22 +24,19 @@ class Order:
                 data["status"]
             )
 
-    def update_status(self, new_status):
-        self.status = new_status
-        order_ref = db.collection("orders").document(self.order_id[0])
+    @classmethod
+    def update_status(cls, order_id, new_status):
+        order_ref = db.collection("orders").document(order_id)
+        if not order_ref.get().exists:
+            return {'message': 'Order not found'}, 404
 
         order_ref.update({
-            'status': self.status
+            'status': new_status
         })
 
-    # def calculate_total_price(self):
-    #     total_price = 0.0
-    #     for item in self.order_items:
-    #         total_price += item.price
-    #     return total_price
-
-    def get_order_items(self):
-        order_items_ref = db.collection('orders').document(self.order_id).collection('order_items')
+    @classmethod
+    def get_order_items(cls, order_id):
+        order_items_ref = db.collection('orders').document(order_id).collection('order_items')
         order_items = order_items_ref.stream()
         return [OrderItem.from_dict(item.to_dict()) for item in order_items]
 
@@ -54,18 +52,23 @@ class Order:
         doc_ref = order_ref.document(order_id).get()
 
         if not doc_ref.exists:
-            return None
+            return {'message': 'Order not found'}, 404
 
         order = cls.from_dict(doc_ref.to_dict())
-        order.id = doc_ref.id
-
-        # Fetch order items
-        order_items = order.get_order_items()
-
-        # Assign order items to the order instance
-        order.order_items = order_items
 
         return order
 
     def delete(self):
-        order_ref = db.collection('orders').document(self.order_id).delete()
+        db.collection('orders').document(self.order_id).delete()
+
+    def update_total_price(self):
+        total = sum(order_item.get_amount() for order_item in self.get_order_items(self.order_id))
+        order_ref = db.collection('orders').document(self.order_id)
+        order_ref.update({
+            'total_price': total
+        })
+
+    def add_order_item(self, order_item):
+        order_item.save(self.order_id)
+        self.update_total_price()
+

@@ -2,12 +2,13 @@ from flask import request
 from flask_restful import Resource, reqparse
 from app.models import Order, db
 from app.api.models.OrderItem import OrderItem
+from app.api.models.Order import Order
 
 
 class OrderItemResource(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument('quantity', type=int, help='Quantity')
+        self.parser.add_argument('quantity', type=int, help="Quantity to order")
         self.parser.add_argument('special_request', type=str, help='Special request', default="")
         self.parser.add_argument('status', type=str, help='Status', default="pending")
 
@@ -16,26 +17,23 @@ class OrderItemResource(Resource):
         quantity = args['quantity']
         special_request = args['special_request']
 
-        # Fetch order document from Firestore
-        order_doc = db.collection('orders').document(order_id).get()
-        if not order_doc.exists:
-            return {"message": "Order not found"}, 404
-
+        # Save the order item
         order_item = OrderItem(
             menu_item_id=menu_item_id,
             quantity=quantity,
             special_request=special_request
         )
 
-        order_items_ref = db.collection('orders').document(order_id).collection('order_items')
-        order_item_doc = order_items_ref.document(menu_item_id).set(order_item.to_dict())
+        # Add item to Order
+        order = Order.get_detail_order(order_id)
+        if order:
+            order.add_order_item(order_item)
 
         return {'message': 'Order item added'}, 201
 
     def put(self, order_id, menu_item_id):
         try:
             args = self.parser.parse_args()
-            new_quantity = args['quantity']
             new_status = args['status']
 
             order_item = OrderItem.get_by_id(order_id, menu_item_id)
@@ -55,9 +53,8 @@ class OrderResource(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
         self.parser.add_argument('order_id', type=str, help='Order ID', required=True)
-        self.parser.add_argument('total_price', type=float, help='Total price', required=True)
+        self.parser.add_argument('total_price', type=float, help='Total price', default=0.0)
         self.parser.add_argument('status', type=str, help='Status', default="pending")
-        self.parser.add_argument('order_items', type=str, help='Ordered items', required=False)
 
     def post(self):
         args = self.parser.parse_args()
@@ -83,39 +80,29 @@ class OrderResource(Resource):
 class OrderDetailResource(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument('total_price', type=float, required=False)
         self.parser.add_argument('status', type=str, required=True)
 
     def put(self, order_id):
         args = self.parser.parse_args()
         new_status = args['status']
 
-        # Fetch existing order from Firestore
-        order_doc = db.collection('orders').document(order_id).get()
-        if not order_doc.exists:
-            return {'message': 'Order not found'}, 404
-
-        # Update
-        order = Order.from_dict(order_doc.to_dict())
-        order.update_status(new_status)
-
-        return {'order': order.to_dict()}, 201
+        Order.update_status(order_id, new_status)
+        return {'message': 'Order updated successfully'}, 201
 
     def get(self, order_id):
         order = Order.get_detail_order(order_id)
         if not order:
             return {'message': 'Order not found'}, 404
 
-        # Include order items
         order_data = order.to_dict()
-        order_data['order_items'] = [item.to_dict() for item in order.order_items]
+        order_data['order_items'] = [item.to_dict() for item in Order.get_order_items(order_id)]
 
         return {'order': order_data}, 201
 
     def delete(self, order_id):
         order = Order.get_detail_order(order_id)
-        if order:
-            order.delete()
-            return {'message': 'Successfully deleted order'}, 201
-        else:
+        if not order:
             return {'message': 'Order not found'}, 404
+
+        order.delete()
+        return {'message': 'Successfully deleted order'}, 201
