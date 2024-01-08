@@ -3,26 +3,26 @@ from . import db
 
 class MenuItem:
     def __init__(self, item_id, name, description, price, is_on_stock=True, category=None, image_url=None):
-        self.__item_id = item_id
-        self.__name = name
-        self.__description = description
-        self.__price = price
-        self.__is_on_stock = is_on_stock
-        self.__category = category
-        self.__image_url = image_url
+        self.item_id = item_id
+        self.name = name
+        self.description = description
+        self.price = price
+        self.is_on_stock = is_on_stock
+        self.category = category
+        self.image_url = image_url
 
     def get_item_id(self):
-        return self.__item_id
+        return self.item_id
 
     def to_dict(self):
         return {
-            "item_id": self.__item_id,
-            "name": self.__name,
-            "description": self.__description,
-            "price": self.__price,
-            "is_on_stock": self.__is_on_stock,
-            "category": self.__category,
-            "image_url": self.__image_url
+            "item_id": self.item_id,
+            "name": self.name,
+            "description": self.description,
+            "price": self.price,
+            "is_on_stock": self.is_on_stock,
+            "category": self.category,
+            "image_url": self.image_url
         }
 
     @classmethod
@@ -50,7 +50,7 @@ class MenuItem:
     def list_items(cls):
         menu_ref = db.collection('menu_items')
         menu_items = menu_ref.stream()
-        return [cls.from_firestore_data(menu_item) for menu_item in menu_items]
+        return [cls.from_firestore_data(menu_item.to_dict()) for menu_item in menu_items]
 
     @classmethod
     def get_item(cls, menu_item_id):
@@ -67,14 +67,15 @@ class MenuItem:
         for key, value in kwargs.items():
             setattr(self, key, value)
         menu_ref = db.collection('menu_items')
-        menu_ref.document(self.__item_id).update(self.to_dict())
+        menu_ref.document(self.item_id).update(self.to_dict())
 
     def delete(self):
         menu_ref = db.collection('menu_items')
-        menu_ref.document(self.__item_id).delete()
+        menu_ref.document(self.item_id).delete()
 
     @classmethod
     def get_items_by_category(cls, category):
         menu_ref = db.collection('menu_items')
         query = menu_ref.where('category', '==', category).stream()
         return [cls.from_firestore_data(menu_item.to_dict()) for menu_item in query]
+

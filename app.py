@@ -2,6 +2,8 @@ from flask import Flask, render_template
 from config import app_config, Config
 from flask_restful import Api
 from app.api.blueprints import diner_api, menu_api, order_api, bill_api
+from app.api.models.MenuItem import MenuItem
+# from app.models import MenuItem
 
 app = Flask(__name__)
 app.config.from_object(app_config)

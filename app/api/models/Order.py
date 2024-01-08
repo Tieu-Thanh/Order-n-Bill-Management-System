@@ -14,6 +14,7 @@ class Order:
             "order_id": self.order_id,
             "total_price": self.total_price,
             "status": self.status,
+            "billID": self.billID
         }
 
     @classmethod
@@ -21,7 +22,8 @@ class Order:
         return cls(
                 data["order_id"],
                 data["total_price"],
-                data["status"]
+                data["status"],
+                data["billID"]
             )
 
     @classmethod
