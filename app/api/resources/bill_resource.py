@@ -26,6 +26,11 @@ db = firestore.client()
 
 
 class BillDetailResource(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('payment_status', type=str, help="Payment")
+        self.parser.add_argument('payment_method', type=str, help="Payment method")
+
     def get(self, bill_id):
         # Retrieve bill and associated orders
         bill = Bill.get_bill_by_id(bill_id)
@@ -42,10 +47,10 @@ class BillDetailResource(Resource):
 
     def put(self, bill_id):
         # Update an existing bill by ID
-        data = request.get_json()
+        args = parser.parse_args()
         bill = Bill.get_bill_by_id(bill_id)
         if bill:
-            bill.update_attributes(data)
+            bill.update_attributes(**args)
             return {"message": "Bill updated successfully"}, 201
         return {"message": "Bill not found"}, 404
 

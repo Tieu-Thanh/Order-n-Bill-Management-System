@@ -108,10 +108,11 @@ class Bill:
             "total_price": self.total_price}
         )
 
-    def update_status(self, status):
-        self.payment_status = status
+    def update_status(self, payment_status, payment_method):
+        self.payment_status = payment_status
+        self.payment_method = payment_method
         bill_ref = db.collection('bills').document(self.bill_id)
-        bill_ref.update({"payment_status": self.payment_status})
+        bill_ref.update({"payment_status": self.payment_status, "payment_method": self.payment_method})
 
     def get_orders_data(self):
         """Retrieves and returns order data associated with the bill."""
