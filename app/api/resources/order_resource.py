@@ -55,15 +55,16 @@ class OrderResource(Resource):
         self.parser.add_argument('order_id', type=str, help='Order ID', required=True)
         self.parser.add_argument('total_price', type=float, help='Total price', default=0.0)
         self.parser.add_argument('status', type=str, help='Status', default="pending")
+        self.parser.add_argument('bill_id', type=str, help='Bill ID', default="")
 
     def post(self):
         args = self.parser.parse_args()
         order_id = args['order_id']
         total_price = args['total_price']
         status = args['status']
-
+        bill_id = args['bill_id']
         # Create Order instance
-        order = Order(order_id=order_id, total_price=total_price, status=status)
+        order = Order(order_id, total_price, bill_id, status)
         db.collection('orders').document(order_id).set(order.to_dict())
 
         return {'order': order.to_dict()}, 201
@@ -87,6 +88,12 @@ class OrderDetailResource(Resource):
         new_status = args['status']
 
         Order.update_status(order_id, new_status)
+
+        if new_status == "served":
+            order = Order.get_detail_order(order_id)
+            bill = order.get_bill()
+            bill.add_order(order.to_dict()['order_id'])
+
         return {'message': 'Order updated successfully'}, 201
 
     def get(self, order_id):

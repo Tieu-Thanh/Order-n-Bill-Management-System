@@ -5,6 +5,7 @@ from google.cloud import firestore
 from flask import request
 from flask_restful import Resource, reqparse
 from app.api.models.Bill import Bill
+from app.api.models.Order import Order
 from firebase_admin import firestore
 
 db = firestore.client()
@@ -26,10 +27,17 @@ db = firestore.client()
 
 class BillDetailResource(Resource):
     def get(self, bill_id):
-        # Retrieve a specific bill by ID
+        # Retrieve bill and associated orders
         bill = Bill.get_bill_by_id(bill_id)
         if bill:
-            return bill.to_dict(), 201
+            try:
+                orders_data = bill.get_orders_data()
+                response_data = bill.to_dict()
+                response_data['orders'] = orders_data
+                return response_data, 201
+            except Exception as e:
+                return {"message": f"Error retrieving order details: {e}"}, 500
+
         return {"message": "Bill not found"}, 404
 
     def put(self, bill_id):

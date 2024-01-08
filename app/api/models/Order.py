@@ -1,28 +1,30 @@
 from . import db
 from .OrderItem import OrderItem
-
+from .Bill import Bill
 
 class Order:
-    def __init__(self, order_id, total_price, billID="",  status="pending"):
+    def __init__(self, order_id, total_price, bill_id,  status="pending"):
         self.order_id = order_id
         self.total_price = total_price
         self.status = status
-        self.billID = billID
+        self.bill_id = bill_id
 
     def to_dict(self):
         return {
             "order_id": self.order_id,
             "total_price": self.total_price,
-            "status": self.status,
+            "bill_id": self.bill_id,
+            "status": self.status
         }
 
     @classmethod
     def from_dict(cls, data):
         return cls(
-                data["order_id"],
-                data["total_price"],
-                data["status"]
-            )
+            data["order_id"],
+            data["total_price"],
+            data["bill_id"],
+            data["status"]
+        )
 
     @classmethod
     def update_status(cls, order_id, new_status):
@@ -72,3 +74,5 @@ class Order:
         order_item.save(self.order_id)
         self.update_total_price()
 
+    def get_bill(self):
+        return Bill.get_bill_by_id(self.bill_id)
