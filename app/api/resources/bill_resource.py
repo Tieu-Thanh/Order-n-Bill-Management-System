@@ -30,6 +30,7 @@ class BillDetailResource(Resource):
         self.parser = reqparse.RequestParser()
         self.parser.add_argument('payment_status', type=str, help="Payment")
         self.parser.add_argument('payment_method', type=str, help="Payment method")
+        self.parser.add_argument('table_id', type=str, help="New table id")
 
     def get(self, bill_id):
         # Retrieve bill and associated orders
@@ -62,6 +63,18 @@ class BillDetailResource(Resource):
             return {"message": "Bill deleted successfully"}, 201
         return {"message": "Bill not found"}, 404
 
+    def patch(self, bill_id):
+        bill = Bill.get_bill_by_id(bill_id)
+        if not bill:
+            return {"message": "Bill not found"}, 404
+
+        args = self.parser.parse_args()
+        new_table_id = args["table_id"]
+        if new_table_id:
+            bill.change_table(new_table_id)
+            return {'message': 'Bill updated successfully'}, 201
+
+        return {"message": "Table_id not found"}, 404
 
 class BillResource(Resource):
     def __init__(self):

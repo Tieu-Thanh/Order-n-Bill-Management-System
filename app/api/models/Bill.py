@@ -131,6 +131,10 @@ class Bill:
             orders_data.append(order_data)
         return orders_data
 
+    def change_table(self, new_table_id):
+        self.table_id = new_table_id
+        bill_ref = db.collection('bills').document(self.bill_id)
+        bill_ref.update({"table_id": self.table_id})
 
     def calculate_total_price(self):
         orders_data = self.get_orders_data()
