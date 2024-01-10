@@ -9,7 +9,7 @@ from google.cloud import firestore
 class Bill:
     def __init__(self, bill_id, diner_id, table_id,
                  shift="", payment_method="", payment_status="Unpaid",
-                 date=datetime.utcnow().strftime("%d/%m/%Y, %H:%M:%S")):
+                 date=datetime.now().strftime("%d/%m/%Y, %H:%M:%S")):
         self.bill_id = bill_id
         self.diner_id = diner_id
         self.table_id = table_id
@@ -18,7 +18,7 @@ class Bill:
         self.payment_status = payment_status
         self.date = date
         self.order_ids = self.get_order_ids()
-        self.total_price = self.calculate_total_price()
+        self.total_price = 0
 
     def to_dict(self):
         return {
