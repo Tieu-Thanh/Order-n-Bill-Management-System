@@ -1,11 +1,15 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, flash
 from config import app_config, Config
 from flask_restful import Api
 from app.api.blueprints import diner_api, menu_api, order_api, bill_api
 from app.api.models.MenuItem import MenuItem
 # from app.models import MenuItem
+from flask import request, jsonify
+from flask import Flask, render_template, request, redirect, url_for
+from flask_bootstrap import Bootstrap
 
 app = Flask(__name__)
+Bootstrap(app)
 app.config.from_object(app_config)
 firebase_admin_instance = Config.FIRESTORE
 app.config['FIREBASE_ADMIN'] = firebase_admin_instance
@@ -30,10 +34,34 @@ def get_menu_item(menu_item_id):
     menu_item = MenuItem.get_item(menu_item_id)
     return render_template('menu_item.html', menu_item=menu_item)
 
+@app.route('/add_item', methods=['GET', 'POST'])
+def add_item():
+    if request.method == 'POST':
+        item_id = request.form['item_id']
+        name = request.form['name']
+        description = request.form['description']
+        price = request.form['price']
+        is_on_stock = request.form.get('is_on_stock') == 'on'
+        category = request.form['category']
+        image_url = request.form['image_url']
+
+        new_item = MenuItem(item_id, name, description, price, is_on_stock, category, image_url)
+        MenuItem.save(new_item)
+
+        flash('Item added successfully!', 'success')  # Flash success message
+
+        # Redirect to the same add_item route to display the form again
+        return render_template('add_item.html')
+
+    return render_template('add_item.html')
+
 @app.route('/diner/<diner_id>')
 def get_diner(diner_id):
     # Logic to fetch diner info by ID and render diner template
     pass
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

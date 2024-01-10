@@ -15,11 +15,13 @@ class MenuItem:
         return self.item_id
 
     def to_dict(self):
+        price = int(self.price) if isinstance(self.price, str) else self.price
+
         return {
             "item_id": self.item_id,
             "name": self.name,
             "description": self.description,
-            "price": self.price,
+            "price": price,
             "is_on_stock": self.is_on_stock,
             "category": self.category,
             "image_url": self.image_url

@@ -1,14 +1,21 @@
 <!-- menu_item.html -->
-
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
     <title>Menu Item</title>
 </head>
 <body>
     <h1>{{ menu_item.name }}</h1>
+    <!-- Hiển thị hình ảnh item -->
+    <img src="{{ menu_item.image_url }}" alt="{{ menu_item.name }}" style="max-width: 300px;">
     <p>Description: {{ menu_item.description }}</p>
     <p>Price: {{ menu_item.price }}đ</p>
     <p>Category: {{ menu_item.category }}</p>
+    <!-- Kiểm tra điều kiện của is_on_stock để hiển thị tình trạng hàng -->
+    {% if menu_item.is_on_stock %}
+        <p>Status: Còn hàng</p>
+    {% else %}
+        <p>Status: Hết hàng</p>
+    {% endif %}
 </body>
 </html>

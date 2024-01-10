@@ -23,6 +23,32 @@
             margin-top: auto;
             align-self: flex-end;
         }
+
+        /* Cài đặt độ dài ngang cho phần cart */
+        .cart-menu {
+            height: 500px; /* Điều chỉnh chiều cao của giỏ hàng để tạo kích thước cố định */
+            overflow-y: auto; /* Cho phép cuộn nếu nội dung vượt quá kích thước */
+            padding-right: 15px; /* Thêm padding phải để tránh việc nội dung bị che bởi thanh cuộn */
+            margin-bottom: 20px;
+        }
+
+        /* Điều chỉnh kích thước phần menu và phần cart ngang bằng nhau trên các thiết bị lớn */
+        @media (min-width: 992px) {
+            .col-md-8 {
+                flex: 0 0 66.666667%; /* Độ rộng 66.67% cho phần menu */
+                max-width: 66.666667%;
+            }
+            .col-md-4 {
+                flex: 0 0 33.333333%; /* Độ rộng 33.33% cho phần cart */
+                max-width: 33.333333%;
+            }
+        }
+        .cart-items > div > button {
+            transform: translateY(-5px);
+            padding: 8px;
+            position: relative;
+            top: -70px;
+        }
         .advertisement-panel {
             background-color: #f8f9fa; /* Màu nền của panel quảng cáo */
             padding: 15px;
@@ -63,6 +89,46 @@
             max-height: 600px; /* Set the maximum height for the scrollable menu */
             overflow-y: auto; /* Enable vertical scrolling */
         }
+        .total {
+            background: none;
+            border: none;
+        }
+
+        /* Thiết lập vị trí của phần Total và nút Order */
+        .position-relative {
+            position: relative;
+        }
+
+        .position-absolute {
+            position: absolute;
+        }
+
+        .bottom-0 {
+            margin-bottom: 20px;
+        }
+
+        .start-0 {
+            left: 0;
+        }
+
+        .btn-order {
+            margin-left: 10px; /* Điều chỉnh khoảng cách giữa Total và nút Order */
+        }
+        .order-btn {
+            margin-bottom: 20px; /* Điều chỉnh khoảng cách giữa nút Order và phần cart */
+        }
+        /* Ẩn khung nhập ghi chú ban đầu */
+        .note-input {
+            display: none;
+        }
+        .category {
+            cursor: pointer;
+        }
+
+        /* Điều chỉnh khoảng cách giữa các mục category */
+        .list-group-item {
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -77,14 +143,34 @@
             <!-- Cột hiển thị danh mục -->
             <div class="col-md-12 mb-4">
                 <h2>Categories</h2>
-                <ul class="list-group">
-                    <!-- Danh sách các category -->
-                    <li class="list-group-item category" data-category="category1">Category 1</li>
-                    <li class="list-group-item category" data-category="category2">Category 2</li>
-                    <li class="list-group-item category" data-category="category3">Category 3</li>
-                    <!-- Thêm các category khác tương tự -->
-                </ul>
+                <div class="d-flex justify-content-between">
+                    <div class="flex-fill me-3">
+                        <ul class="list-group">
+                            <!-- Danh sách các category -->
+                            <li class="list-group-item category" data-category="all">All</li>
+                        </ul>
+                    </div>
+                    <div class="flex-fill me-3">
+                        <ul class="list-group">
+                            <!-- Danh sách các category -->
+                            <li class="list-group-item category" data-category="Lau">Lẩu</li>
+                        </ul>
+                    </div>
+                    <div class="flex-fill me-3">
+                        <ul class="list-group">
+                            <!-- Danh sách các category -->
+                            <li class="list-group-item category" data-category="Do_Nuong">Đồ Nướng</li>
+                        </ul>
+                    </div>
+                    <div class="flex-fill">
+                        <ul class="list-group">
+                            <!-- Danh sách các category -->
+                            <li class="list-group-item category" data-category="Do_Uong">Đồ Uống</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
+
 
             <!-- Cột hiển thị menu -->
             <div class="col-md-8">
@@ -95,7 +181,10 @@
                         {% for item in menu_items %}
                             <div class="col-md-6 category-item category{{ item.category }}">
                                 <div class="card">
-                                    <img src="{{ item.image_url }}" class="card-img-top" alt="{{ item.name }}">
+                                    <!-- Thay đổi ở đây để thêm thẻ a bao quanh hình ảnh -->
+                                    <a href="{{ url_for('get_menu_item', menu_item_id=item.item_id) }}">
+                                        <img src="{{ item.image_url }}" class="card-img-top" alt="{{ item.name }}">
+                                    </a>
                                     <div class="card-body">
                                         <h5 class="card-title">{{ item.name }}</h5>
                                         <p class="card-text">{{ item.description }}</p>
@@ -109,15 +198,38 @@
                 </div>
             </div>
 
+
             <!-- Cột hiển thị giỏ hàng -->
-            <div class="col-md-3">
+            <div class="col-md-4 position-relative">
                 <h2>Cart</h2>
                 <!-- Hiển thị các món hàng đã thêm vào giỏ -->
-                <div class="card">
-                    <div class="card-body" id="cart-items">
+                <div class="card cart-menu">
+                    <div class="card-body cart-items" id="cart-items">
                         <!-- Thông tin về các món hàng đã thêm vào giỏ sẽ được hiển thị ở đây -->
                     </div>
                 </div>
+                <!-- Phần hiển thị Total -->
+                <div class="total position-absolute bottom-0 start-0">
+                    <h5>Total: <span id="total-price"></span></h5>
+                </div>
+                <!-- Nút Order -->
+                <div class="order-btn position-absolute bottom-0 end-0">
+                    <button class="btn btn-success btn-order">Order</button>
+                </div>
+{#                <!-- Nút Note -->#}
+{#                <div class="note-btn position-absolute bottom-0 start-0">#}
+{#                    <button class="btn btn-primary btn-note">Note</button>#}
+{#                </div>#}
+{#                <!-- Khung nhập thông tin ghi chú -->#}
+{#                <div class="note-input position-fixed top-50 start-50 translate-middle">#}
+{#                    <div class="card">#}
+{#                        <div class="card-body">#}
+{#                            <textarea class="form-control" id="note-text" rows="3" placeholder="Add a note..."></textarea>#}
+{#                            <button class="btn btn-secondary mt-2 me-2 btn-cancel">Cancel</button>#}
+{#                            <button class="btn btn-primary mt-2 btn-enter">Enter</button>#}
+{#                        </div>#}
+{#                    </div>#}
+{#                </div>#}
             </div>
         </div>
     </div>
@@ -147,7 +259,34 @@
         document.addEventListener('DOMContentLoaded', function() {
             const addToCartButtons = document.querySelectorAll('.add-to-cart');
             const cartItemsContainer = document.getElementById('cart-items');
+            const menuItems = document.querySelectorAll('.category-item');
+            const categoryButtons = document.querySelectorAll('.category');
+
+
             let cartItems = []; // Lưu danh sách các sản phẩm trong giỏ hàng
+            let currentCategory = null;
+
+            // Hiển thị các mục dựa trên category được chọn
+            function filterItemsByCategory(categoryName) {
+                menuItems.forEach(item => {
+                    if (categoryName === 'all' || item.classList.contains(`category${categoryName}`)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+
+            // Xử lý sự kiện khi người dùng chọn category
+            categoryButtons.forEach(category => {
+                category.addEventListener('click', function () {
+                    const selectedCategory = this.dataset.category;
+                    filterItemsByCategory(selectedCategory);
+                });
+            });
+
+            // Hiển thị các mục tất cả khi trang web được tải lần đầu tiên
+            filterItemsByCategory('all');
 
             addToCartButtons.forEach(button => {
                 button.addEventListener('click', function() {
@@ -167,7 +306,8 @@
                             id: itemId,
                             title: itemTitle,
                             price: itemPrice,
-                            quantity: 1
+                            quantity: 1,
+                            note: '' // Thêm trường để lưu ghi chú
                         };
                         cartItems.push(newItem);
                     }
@@ -177,27 +317,75 @@
                 });
             });
 
+            // Cập nhật hàm renderCartItems() để tính tổng tiền và hiển thị nó
             function renderCartItems() {
-                // Xóa nội dung cũ của giỏ hàng để cập nhật lại
                 cartItemsContainer.innerHTML = '';
 
-                // Hiển thị thông tin các món hàng đã thêm vào giỏ
-                cartItems.forEach(item => {
+                let totalPrice = 0; // Biến để tính tổng tiền
+
+                cartItems.forEach((item, index) => {
                     const cartItem = document.createElement('div');
                     const itemName = document.createElement('p');
                     const itemPrice = document.createElement('p');
                     const itemQuantity = document.createElement('p');
+                    const itemNote = document.createElement('textarea'); // Thêm textarea để nhập ghi chú
+
+                    const increaseButton = document.createElement('button');
+                    const decreaseButton = document.createElement('button');
+                    const deleteButton = document.createElement('button');
 
                     itemName.textContent = `Item Name: ${item.title}`;
                     itemPrice.textContent = `Item Price: ${item.price}`;
                     itemQuantity.textContent = `Quantity: ${item.quantity}`;
+                    itemNote.placeholder = 'Add a note...'; // Placeholder cho ghi chú
+                    itemNote.value = item.note; // Gán giá trị ghi chú đã lưu
+
+                    itemNote.addEventListener('change', function() {
+                        // Lưu ghi chú khi người dùng thay đổi nội dung
+                        cartItems[index].note = itemNote.value;
+                    });
+
+                    increaseButton.textContent = '+';
+                    increaseButton.classList.add('btn', 'btn-sm', 'btn-primary');
+                    increaseButton.addEventListener('click', function() {
+                        item.quantity += 1;
+                        renderCartItems();
+                    });
+
+                    decreaseButton.textContent = '-';
+                    decreaseButton.classList.add('btn', 'btn-sm', 'btn-danger', 'mx-2');
+                    decreaseButton.addEventListener('click', function() {
+                        if (item.quantity > 1) {
+                            item.quantity -= 1;
+                            renderCartItems();
+                        }
+                    });
+
+                    deleteButton.textContent = 'X'; // Nút xóa
+                    deleteButton.classList.add('btn', 'btn-sm', 'btn-danger', 'mx-2');
+                    deleteButton.addEventListener('click', function() {
+                        // Xóa sản phẩm khỏi giỏ hàng khi người dùng nhấn nút xóa
+                        cartItems.splice(index, 1);
+                        renderCartItems();
+                    });
 
                     cartItem.appendChild(itemName);
                     cartItem.appendChild(itemPrice);
                     cartItem.appendChild(itemQuantity);
+                    cartItem.appendChild(itemNote);
+                    cartItem.appendChild(increaseButton);
+                    cartItem.appendChild(decreaseButton);
+                    cartItem.appendChild(deleteButton); // Thêm nút xóa vào giao diện
 
                     cartItemsContainer.appendChild(cartItem);
+
+                    // Tính tổng tiền cho mỗi sản phẩm
+                    totalPrice += item.price * item.quantity;
                 });
+
+                // Hiển thị tổng tiền
+                const totalPriceElement = document.getElementById('total-price');
+                totalPriceElement.textContent = `$${totalPrice.toFixed(2)}`;
             }
         });
     </script>
