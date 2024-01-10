@@ -1,47 +1,57 @@
-from google.api_core.datetime_helpers import DatetimeWithNanoseconds
+# from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 
 from . import db
 from datetime import datetime
 from google.cloud import firestore
-from google.cloud.firestore_v1.base_query import FieldFilter
+# from google.cloud.firestore_v1.base_query import FieldFilter
 # from .Order import Order
 
 class Bill:
-    def __init__(self, bill_id, order_ids, diner_id, table_id, total_price,
-                 payment_method,  payment_status, shift):
+    def __init__(self, bill_id, diner_id, table_id,
+                 shift="", payment_method="", payment_status="Unpaid",
+                 date=datetime.utcnow().strftime("%d/%m/%Y, %H:%M:%S")):
         self.bill_id = bill_id
-        self.order_ids = order_ids
         self.diner_id = diner_id
         self.table_id = table_id
-        self.total_price = total_price
+        self.shift = shift
         self.payment_method = payment_method
         self.payment_status = payment_status
-        self.shift = shift
+        self.date = date
+        self.order_ids = self.get_order_ids()
+        self.total_price = self.calculate_total_price()
 
     def to_dict(self):
         return {
             "bill_id": self.bill_id,
-            "order_ids": self.order_ids,
             "diner_id": self.diner_id,
             "table_id": self.table_id,
+            "shift": self.shift,
             "total_price": self.total_price,
             "payment_method": self.payment_method,
             "payment_status": self.payment_status,
-            "shift": self.shift
+            "date": self.date,
+            "order_ids": self.order_ids
         }
 
     @classmethod
     def from_dict(cls, data):
         return cls(
             data["bill_id"],
-            data["order_ids"],
             data["diner_id"],
             data["table_id"],
-            data["total_price"],
+            data["shift"],
             data["payment_method"],
             data["payment_status"],
-            data["shift"].strftime("%m/%d/%Y %H:%M:%S")
+            data["date"]
         )
+
+    def save(self):
+        bill_ref = db.collection('bills').document(self.bill_id)
+        bill_ref.set(self.to_dict())
+
+    def delete_from_db(self):
+        bill_ref = db.collection('bills').document(self.bill_id)
+        bill_ref.delete()
 
     @classmethod
     def get_bills(cls):
@@ -56,14 +66,6 @@ class Bill:
         if bill_data.exists:
             return cls.from_dict(bill_data.to_dict())
         return None
-
-    def save(self):
-        bill_ref = db.collection('bills').document(self.bill_id)
-        bill_ref.set(self.to_dict())
-
-    def delete_from_db(self):
-        bill_ref = db.collection('bills').document(self.bill_id)
-        bill_ref.delete()
 
     @classmethod
     def filter_bills(cls, filter_param, sort_field=None, sort_order="asc"):
@@ -96,23 +98,28 @@ class Bill:
         filtered_bills = filtered_query.stream()
         return [cls.from_dict(bill.to_dict()) for bill in filtered_bills]
 
-    def add_order(self, order_id):
-        self.order_ids.append(order_id)  # Use a set for order_ids
+    def get_order_ids(self):
+        """Retrieves order IDs associated with the bill from the "orders" collection."""
+        orders_ref = db.collection('orders')
+        orders_query = orders_ref.where('bill_id', '==', self.bill_id)
+        order_doc = orders_query.stream()
 
-        # save to document
-        bill_ref = db.collection('bills').document(self.bill_id)
+        order_ids = [order.id for order in order_doc]
 
-        self.total_price = self.calculate_total_price()  # Recalculate total price
-        bill_ref.update({
-            "order_ids": self.order_ids,
-            "total_price": self.total_price}
-        )
+        return order_ids
 
     def update_status(self, payment_status, payment_method):
         self.payment_status = payment_status
         self.payment_method = payment_method
+
+        # Field updates:
+        data = {
+            "payment_status": self.payment_status,
+            "payment_method": self.payment_method
+        }
+
         bill_ref = db.collection('bills').document(self.bill_id)
-        bill_ref.update({"payment_status": self.payment_status, "payment_method": self.payment_method})
+        bill_ref.update(data)
 
     def get_orders_data(self):
         """Retrieves and returns order data associated with the bill."""
@@ -138,5 +145,8 @@ class Bill:
 
     def calculate_total_price(self):
         orders_data = self.get_orders_data()
-        total_price = sum(sum(item.get('amount', 0) for item in order.get('order_items', [])) for order in orders_data)
-        return total_price
+        return sum(
+            item.get("amount", 0)  # Directly access amount, default to 0
+            for order in orders_data
+            for item in order.get("order_items", [])
+        )

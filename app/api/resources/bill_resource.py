@@ -82,37 +82,35 @@ class BillResource(Resource):
         self.parser.add_argument('bill_id', type=str)
         self.parser.add_argument('diner_id', type=str)
         self.parser.add_argument('table_id', type=str)
-        self.parser.add_argument('order_ids', type=list, default=[])
-        self.parser.add_argument('total_price', type=float, default=0.0)
-        self.parser.add_argument('payment_method', type=str, default="")
-        self.parser.add_argument('payment_status', type=str, default="Unpaid")
-        self.parser.add_argument('shift', type=datetime, default=datetime.now())
 
     def post(self):
         args = self.parser.parse_args()
-        args['shift'] = firestore.SERVER_TIMESTAMP
         bill = Bill(**args)
         bill.save()
         return {"message": "Bill created successfully"}, 201
 
+    # def get(self):
+    #     filter_param = {}
+    #     sort_field = request.args.get('sort_by')
+    #     sort_order = request.args.get('sort', 'asc').lower()
+    #
+    #     # Extract filtering parameters from request.args, ensuring data integrity
+    #     allowed_fields = ['bill_id', 'diner_id', 'table_id', 'payment_status',
+    #                       'other_valid_fields']  # Add more fields as needed
+    #     for field in allowed_fields:
+    #         value = request.args.get(field)
+    #         if value:
+    #             try:
+    #                 # Validate values if necessary (e.g., for numbers, dates)
+    #                 filter_param[field] = value
+    #             except ValueError:
+    #                 return {"error": f"Invalid value for field '{field}'"}, 400
+    #
+    #     # Retrieve filtered and sorted bills
+    #     filtered_bills = Bill.filter_bills(filter_param, sort_field, sort_order)
+    #
+    #     return {"bills": [bill.to_dict() for bill in filtered_bills]}, 201
+
     def get(self):
-        filter_param = {}
-        sort_field = request.args.get('sort_by')
-        sort_order = request.args.get('sort', 'asc').lower()
-
-        # Extract filtering parameters from request.args, ensuring data integrity
-        allowed_fields = ['bill_id', 'diner_id', 'table_id', 'payment_status',
-                          'other_valid_fields']  # Add more fields as needed
-        for field in allowed_fields:
-            value = request.args.get(field)
-            if value:
-                try:
-                    # Validate values if necessary (e.g., for numbers, dates)
-                    filter_param[field] = value
-                except ValueError:
-                    return {"error": f"Invalid value for field '{field}'"}, 400
-
-        # Retrieve filtered and sorted bills
-        filtered_bills = Bill.filter_bills(filter_param, sort_field, sort_order)
-
-        return {"bills": [bill.to_dict() for bill in filtered_bills]}, 200
+        bills = Bill.get_bills()
+        return {"bills": [bill.to_dict() for bill in bills]}, 200
