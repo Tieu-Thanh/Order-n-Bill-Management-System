@@ -3,19 +3,20 @@ from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 from . import db
 from datetime import datetime
 from google.cloud import firestore
-
+from google.cloud.firestore_v1.base_query import FieldFilter
+# from .Order import Order
 
 class Bill:
-    def __init__(self, bill_id, order_ids, diner_id, table_id,
-                 payment_method, total_price, payment_status, shift):
+    def __init__(self, bill_id, order_ids, diner_id, table_id, total_price,
+                 payment_method,  payment_status, shift):
         self.bill_id = bill_id
         self.order_ids = order_ids
         self.diner_id = diner_id
         self.table_id = table_id
-        self.shift = shift
         self.total_price = total_price
         self.payment_method = payment_method
         self.payment_status = payment_status
+        self.shift = shift
 
     def to_dict(self):
         return {
@@ -23,14 +24,11 @@ class Bill:
             "order_ids": self.order_ids,
             "diner_id": self.diner_id,
             "table_id": self.table_id,
-            "shift": self.shift,
             "total_price": self.total_price,
             "payment_method": self.payment_method,
-            "payment_status": self.payment_status
+            "payment_status": self.payment_status,
+            "shift": self.shift
         }
-
-    def str_time(self):
-        return str(self.shift)
 
     @classmethod
     def from_dict(cls, data):
@@ -62,10 +60,6 @@ class Bill:
     def save(self):
         bill_ref = db.collection('bills').document(self.bill_id)
         bill_ref.set(self.to_dict())
-
-    def update_status(self, status):
-        self.payment_status = status
-        self.save()
 
     def delete_from_db(self):
         bill_ref = db.collection('bills').document(self.bill_id)
@@ -102,4 +96,47 @@ class Bill:
         filtered_bills = filtered_query.stream()
         return [cls.from_dict(bill.to_dict()) for bill in filtered_bills]
 
+    def add_order(self, order_id):
+        self.order_ids.append(order_id)  # Use a set for order_ids
 
+        # save to document
+        bill_ref = db.collection('bills').document(self.bill_id)
+
+        self.total_price = self.calculate_total_price()  # Recalculate total price
+        bill_ref.update({
+            "order_ids": self.order_ids,
+            "total_price": self.total_price}
+        )
+
+    def update_status(self, payment_status, payment_method):
+        self.payment_status = payment_status
+        self.payment_method = payment_method
+        bill_ref = db.collection('bills').document(self.bill_id)
+        bill_ref.update({"payment_status": self.payment_status, "payment_method": self.payment_method})
+
+    def get_orders_data(self):
+        """Retrieves and returns order data associated with the bill."""
+        orders_ref = db.collection('orders')
+        orders_snapshot = orders_ref.where('order_id', 'in', self.order_ids).stream()
+
+        orders_data = []
+        for order_doc in orders_snapshot:
+            order_data = order_doc.to_dict()
+            order_items_ref = order_doc.reference.collection('order_items')
+            order_items_snapshot = order_items_ref.stream()
+
+            order_items_data = [item_doc.to_dict() for item_doc in order_items_snapshot]
+            order_data['order_items'] = order_items_data
+
+            orders_data.append(order_data)
+        return orders_data
+
+    def change_table(self, new_table_id):
+        self.table_id = new_table_id
+        bill_ref = db.collection('bills').document(self.bill_id)
+        bill_ref.update({"table_id": self.table_id})
+
+    def calculate_total_price(self):
+        orders_data = self.get_orders_data()
+        total_price = sum(sum(item.get('amount', 0) for item in order.get('order_items', [])) for order in orders_data)
+        return total_price

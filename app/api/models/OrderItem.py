@@ -2,20 +2,20 @@ from . import db
 
 
 class OrderItem:
-    def __init__(self, menu_item_id, quantity, special_request, status="pending", amount=None):
+    def __init__(self, menu_item_id, name, quantity, special_request, amount=0, status="pending"):
         self.__menu_item_id = menu_item_id
-        self.__name = None
+        # self.__name = self.__set_name()
+        self.__name = name
         self.__quantity = quantity
         self.__special_request = special_request
         self.__status = status
-        self.__amount = self.__calculate_total()
+        # self.__amount = self.__calculate_total()
+        self.__amount = amount
 
     def to_dict(self):
-        self.__set_name()
-        self.__calculate_total()  # update amount before serialization.
         return {
             'menu_item_id': self.__menu_item_id,
-            'name': self.get_name(),
+            'name': self.__name,
             'quantity': self.__quantity,
             'special_request': self.__special_request,
             'amount': self.__amount,
@@ -26,28 +26,29 @@ class OrderItem:
     def from_dict(cls, data):
         return cls(
             menu_item_id=data.get('menu_item_id'),
+            name=data.get('name'),
             quantity=data.get('quantity'),
             special_request=data.get('special_request'),
-            status=data.get('status'),
-            amount=data.get('amount')
+            amount=data.get('amount'),
+            status=data.get('status')
         )
 
-    def __calculate_total(self):
-        menu_doc = db.collection('menu_items').document(self.__menu_item_id).get()
-        menu_item_price = menu_doc.to_dict()['price']
-        return menu_item_price * self.__quantity
+    # def __calculate_total(self):
+    #     menu_doc = db.collection('menu_items').document(self.__menu_item_id).get()
+    #     menu_item_price = menu_doc.to_dict()['price']
+    #     return menu_item_price * self.__quantity
 
-    def __set_name(self):
-        if not self.__name: # if Name is not cached
-            menu_doc = db.collection('menu_items').document(self.__menu_item_id).get()
-            self.__name = menu_doc.to_dict()['name']
-        return self.__name
+    # def __set_name(self):
+    #     if not self.__name: # if Name is not cached
+    #         menu_doc = db.collection('menu_items').document(self.__menu_item_id).get()
+    #         self.__name = menu_doc.to_dict()['name']
+    #     return self.__name
 
-    def get_amount(self):
-        return self.__amount
-
-    def get_name(self):
-        return self.__name
+    # def get_amount(self):
+    #     return self.__amount
+    #
+    # def get_name(self):
+    #     return self.__name
 
     def save(self, order_id):
         order_items_ref = db.collection('orders').document(order_id).collection('order_items')

@@ -5,6 +5,7 @@ from google.cloud import firestore
 from flask import request
 from flask_restful import Resource, reqparse
 from app.api.models.Bill import Bill
+from app.api.models.Order import Order
 from firebase_admin import firestore
 
 db = firestore.client()
@@ -25,19 +26,32 @@ db = firestore.client()
 
 
 class BillDetailResource(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('payment_status', type=str, help="Payment")
+        self.parser.add_argument('payment_method', type=str, help="Payment method")
+        self.parser.add_argument('table_id', type=str, help="New table id")
+
     def get(self, bill_id):
-        # Retrieve a specific bill by ID
+        # Retrieve bill and associated orders
         bill = Bill.get_bill_by_id(bill_id)
         if bill:
-            return bill.to_dict(), 201
+            try:
+                orders_data = bill.get_orders_data()
+                response_data = bill.to_dict()
+                response_data['orders'] = orders_data
+                return response_data, 201
+            except Exception as e:
+                return {"message": f"Error retrieving order details: {e}"}, 500
+
         return {"message": "Bill not found"}, 404
 
     def put(self, bill_id):
         # Update an existing bill by ID
-        data = request.get_json()
+        args = parser.parse_args()
         bill = Bill.get_bill_by_id(bill_id)
         if bill:
-            bill.update_attributes(data)
+            bill.update_attributes(**args)
             return {"message": "Bill updated successfully"}, 201
         return {"message": "Bill not found"}, 404
 
@@ -49,6 +63,18 @@ class BillDetailResource(Resource):
             return {"message": "Bill deleted successfully"}, 201
         return {"message": "Bill not found"}, 404
 
+    def patch(self, bill_id):
+        bill = Bill.get_bill_by_id(bill_id)
+        if not bill:
+            return {"message": "Bill not found"}, 404
+
+        args = self.parser.parse_args()
+        new_table_id = args["table_id"]
+        if new_table_id:
+            bill.change_table(new_table_id)
+            return {'message': 'Bill updated successfully'}, 201
+
+        return {"message": "Table_id not found"}, 404
 
 class BillResource(Resource):
     def __init__(self):

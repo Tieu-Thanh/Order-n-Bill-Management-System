@@ -1,34 +1,39 @@
 from . import db
 from .OrderItem import OrderItem
-
+from .Bill import Bill
 
 class Order:
-    def __init__(self, order_id, total_price, billID="",  status="pending"):
+    def __init__(self, order_id, total_price, bill_id, status="pending"):
         self.order_id = order_id
         self.total_price = total_price
         self.status = status
-        self.billID = billID
+        self.bill_id = bill_id
+        # self.ordered_items = ordered_items if ordered_items else []
 
     def to_dict(self):
         return {
             "order_id": self.order_id,
             "total_price": self.total_price,
-            "status": self.status,
-            "billID": self.billID
+            "bill_id": self.bill_id,
+            "status": self.status
         }
 
     @classmethod
     def from_dict(cls, data):
         return cls(
-                data["order_id"],
-                data["total_price"],
-                data["status"],
-                data["billID"]
-            )
+            data["order_id"],
+            data["total_price"],
+            data["bill_id"],
+            data["status"]
+        )
 
-    @classmethod
-    def update_status(cls, order_id, new_status):
-        order_ref = db.collection("orders").document(order_id)
+    def save(self):
+        order_ref = db.collection('orders').document(self.order_id)
+        order_ref.set(self.to_dict())
+
+    def update_status(self, new_status):
+        order_ref = db.collection("orders").document(self.order_id)
+
         if not order_ref.get().exists:
             return {'message': 'Order not found'}, 404
 
@@ -37,7 +42,7 @@ class Order:
         })
 
     @classmethod
-    def get_order_items(cls, order_id):
+    def get_ordered_items(cls, order_id):
         order_items_ref = db.collection('orders').document(order_id).collection('order_items')
         order_items = order_items_ref.stream()
         return [OrderItem.from_dict(item.to_dict()) for item in order_items]
@@ -49,12 +54,12 @@ class Order:
         return [cls.from_dict(order.to_dict()) for order in orders]
 
     @classmethod
-    def get_detail_order(cls, order_id):
+    def get_order_by_id(cls, order_id):
         order_ref = db.collection('orders')
         doc_ref = order_ref.document(order_id).get()
 
         if not doc_ref.exists:
-            return {'message': 'Order not found'}, 404
+            return None
 
         order = cls.from_dict(doc_ref.to_dict())
 
@@ -63,14 +68,5 @@ class Order:
     def delete(self):
         db.collection('orders').document(self.order_id).delete()
 
-    def update_total_price(self):
-        total = sum(order_item.get_amount() for order_item in self.get_order_items(self.order_id))
-        order_ref = db.collection('orders').document(self.order_id)
-        order_ref.update({
-            'total_price': total
-        })
-
-    def add_order_item(self, order_item):
-        order_item.save(self.order_id)
-        self.update_total_price()
-
+    def get_bill(self):
+        return Bill.get_bill_by_id(self.bill_id)
