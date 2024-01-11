@@ -85,6 +85,7 @@ class BillResource(Resource):
         args = self.parser.parse_args()
         bill = Bill(**args)
         bill.save()
+        bill.calculate_total_price()
         return {"message": "Bill created successfully",
                 "bill": bill.to_dict()}, 201
 
