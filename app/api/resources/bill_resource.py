@@ -37,10 +37,8 @@ class BillDetailResource(Resource):
         bill = Bill.get_bill_by_id(bill_id)
         if bill:
             try:
-                orders_data = bill.get_orders_data()
-                response_data = bill.to_dict()
-                response_data['orders'] = orders_data
-                return response_data, 201
+                return {'bill': bill.to_dict()}, 201
+
             except Exception as e:
                 return {"message": f"Error retrieving order details: {e}"}, 500
 
@@ -87,30 +85,31 @@ class BillResource(Resource):
         args = self.parser.parse_args()
         bill = Bill(**args)
         bill.save()
-        return {"message": "Bill created successfully"}, 201
-
-    # def get(self):
-    #     filter_param = {}
-    #     sort_field = request.args.get('sort_by')
-    #     sort_order = request.args.get('sort', 'asc').lower()
-    #
-    #     # Extract filtering parameters from request.args, ensuring data integrity
-    #     allowed_fields = ['bill_id', 'diner_id', 'table_id', 'payment_status',
-    #                       'other_valid_fields']  # Add more fields as needed
-    #     for field in allowed_fields:
-    #         value = request.args.get(field)
-    #         if value:
-    #             try:
-    #                 # Validate values if necessary (e.g., for numbers, dates)
-    #                 filter_param[field] = value
-    #             except ValueError:
-    #                 return {"error": f"Invalid value for field '{field}'"}, 400
-    #
-    #     # Retrieve filtered and sorted bills
-    #     filtered_bills = Bill.filter_bills(filter_param, sort_field, sort_order)
-    #
-    #     return {"bills": [bill.to_dict() for bill in filtered_bills]}, 201
+        return {"message": "Bill created successfully",
+                "bill": bill.to_dict()}, 201
 
     def get(self):
-        bills = Bill.get_bills()
-        return {"bills": [bill.to_dict() for bill in bills]}, 200
+        filter_param = {}
+        sort_field = request.args.get('sort_by')
+        sort_order = request.args.get('sort', 'asc').lower()
+
+        # Extract filtering parameters from request.args, ensuring data integrity
+        allowed_fields = ['bill_id', 'diner_id', 'table_id', 'payment_status',
+                          'other_valid_fields']  # Add more fields as needed
+        for field in allowed_fields:
+            value = request.args.get(field)
+            if value:
+                try:
+                    # Validate values if necessary (e.g., for numbers, dates)
+                    filter_param[field] = value
+                except ValueError:
+                    return {"error": f"Invalid value for field '{field}'"}, 400
+
+        # Retrieve filtered and sorted bills
+        filtered_bills = Bill.filter_bills(filter_param, sort_field, sort_order)
+
+        return {"bills": [bill.to_dict() for bill in filtered_bills]}, 201
+
+    # def get(self):
+    #     bills = Bill.get_bills()
+    #     return {"bills": [bill.to_dict() for bill in bills]}, 200
