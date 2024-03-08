@@ -3,10 +3,12 @@ from config import app_config, Config
 from flask_restful import Api
 from app.api.blueprints import diner_api, menu_api, order_api, bill_api
 from app.api.models.MenuItem import MenuItem
+from app.api.models import Order, OrderItem
 # from app.models import MenuItem
 from flask import request, jsonify
 from flask import Flask, render_template, request, redirect, url_for
 from flask_bootstrap import Bootstrap
+import requests
 
 app = Flask(__name__)
 Bootstrap(app)
@@ -37,23 +39,44 @@ def get_menu_item(menu_item_id):
 @app.route('/add_item', methods=['GET', 'POST'])
 def add_item():
     if request.method == 'POST':
-        item_id = request.form['item_id']
-        name = request.form['name']
-        description = request.form['description']
-        price = request.form['price']
-        is_on_stock = request.form.get('is_on_stock') == 'on'
-        category = request.form['category']
-        image_url = request.form['image_url']
+        item_data = {
+            'name': request.form['name'],
+            'description': request.form['description'],
+            'price': request.form['price'],
+            'isOnStock': request.form.get('is_on_stock') == 'on',
+            'category': request.form['category']
+        }
 
-        new_item = MenuItem(item_id, name, description, price, is_on_stock, category, image_url)
-        MenuItem.save(new_item)
+        # Gọi API để thêm mục mới
+        response = requests.post('http://your-api-endpoint/add_item', json=item_data)
 
-        flash('Item added successfully!', 'success')  # Flash success message
+        if response.status_code == 201:
+            flash('Item added successfully!', 'success')
+        else:
+            flash(f'Failed to add item. Error: {response.json().get("error")}', 'error')
 
         # Redirect to the same add_item route to display the form again
         return render_template('add_item.html')
 
     return render_template('add_item.html')
+@app.route('/kitchen')
+def kitchen():
+    return render_template('kitchen.html')
+
+@app.route('/place_order', methods=['POST'])
+def place_order():
+    data = request.json
+    ordered_items = data['orderedItems']
+
+    # Tạo đơn hàng mới trong Firestore
+    order = Order.create_order(...)  # Thay ... bằng thông tin của đơn hàng (order)
+
+    # Lưu thông tin về các món hàng đã đặt vào Firestore
+    for item_data in ordered_items:
+        order_item = OrderItem(**item_data)
+        order_item.save(order.order_id)
+
+    return jsonify({'message': 'Order placed successfully'}), 200
 
 @app.route('/diner/<diner_id>')
 def get_diner(diner_id):
