@@ -4,6 +4,7 @@ from firebase_admin import firestore
 from app.api.models.Diner import Diner
 
 
+
 class DinerResource(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
@@ -27,3 +28,4 @@ class DinerResource(Resource):
 
         # except Exception as e:
         #     return {'error': str(e)}, 400
+
