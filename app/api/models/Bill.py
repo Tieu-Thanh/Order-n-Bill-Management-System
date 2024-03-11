@@ -7,18 +7,6 @@ from google.cloud import firestore
 # from .Order import Order
 
 class Bill:
-    # def __init__(self, bill_id, diner_id, table_id,
-    #              shift="", payment_method="", payment_status="Unpaid",
-    #              date=datetime.now().strftime("%d/%m/%Y, %H:%M:%S")):
-    #     self.bill_id = bill_id
-    #     self.diner_id = diner_id
-    #     self.table_id = table_id
-    #     self.shift = shift
-    #     self.payment_method = payment_method
-    #     self.payment_status = payment_status
-    #     self.date = date
-    #     self.order_ids = self.get_order_ids()
-    #     self.total_price = 0
     def __init__(self, bill_id, diner_id, table_id, **kwargs):
         self._bill_id = bill_id
         self._diner_id = diner_id
@@ -27,8 +15,8 @@ class Bill:
         self._payment_method = kwargs.get("payment_method", "")
         self._payment_status = kwargs.get("payment_status", "Unpaid")
         self._date = kwargs.get("date", datetime.now().strftime("%d/%m/%Y, %H:%M:%S"))
-        self._order_ids = kwargs.get("order_ids", self.get_orders_by_bill_id())  # Initialize as an empty list
-        self._total_price = 0  # Calculate on demand
+        self._order_id = kwargs.get("order_id", self.get_orders_by_bill_id())  # Initialize as an empty list
+        self._total_price = kwargs.get("total_price", 0)  # Calculate on demand
 
     def to_dict(self):
         return {
@@ -36,11 +24,11 @@ class Bill:
             "diner_id": self._diner_id,
             "table_id": self._table_id,
             "shift": self._shift,
-            "total_price": self.calculate_total_price(),  # Calculate total price before saving
+            "total_price": self._total_price,  # Calculate total price before saving
             "payment_method": self._payment_method,
             "payment_status": self._payment_status,
             "date": self._date,
-            "order_ids": self._order_ids,
+            "order_id": self._order_id,
         }
 
     @classmethod
@@ -48,18 +36,22 @@ class Bill:
         return cls(**data)
 
     def save(self):
+        batch = db.batch()
+
         bill_ref = db.collection('bills').document(self._bill_id)
         bill_ref.set(self.to_dict())
+
+        batch.commit()
 
     def delete_from_db(self):
         bill_ref = db.collection('bills').document(self._bill_id)
         bill_ref.delete()
 
-    @classmethod
-    def get_bills(cls):
-        bill_ref = db.collection('bills')
-        bills = bill_ref.stream()
-        return [cls.from_dict(bill.to_dict()) for bill in bills]
+    # @classmethod
+    # def get_bills(cls):
+    #     bill_ref = db.collection('bills')
+    #     bills = bill_ref.stream()
+    #     return [cls.from_dict(bill.to_dict()) for bill in bills]
 
     @classmethod
     def get_bill_by_id(cls, bill_id):
@@ -104,21 +96,33 @@ class Bill:
         """Retrieves order documents from Firestore based on the provided bill_id."""
         orders_ref = db.collection('orders').where('bill_id', '==', self._bill_id)
         orders_snapshot = orders_ref.stream()
+        # order_ids = [order.id for order in orders_snapshot]
 
-        # orders = [doc.to_dict() for doc in orders_snapshot]
-        # return orders
         detailed_orders = []
+
+        # for order_id in order_ids:
+        #     order_data = db.collection('orders').document(order_id).get().to_dict()
+        #
+        #     # Fetch order items directly from the sub-collection
+        #     order_items_ref = db.collection("orders").document(order_id).collection("order_items")
+        #     order_items_snapshot = order_items_ref.stream()
+        #     order_items = [item.to_dict() for item in order_items_snapshot]
+        #
+        #     order_data["order_items"] = order_items  # Add fetched items to order data
+        #     detailed_orders.append(order_data)
         for order_doc in orders_snapshot:
             order_data = order_doc.to_dict()
 
-            # Fetch order items directly from the sub-collection
-            order_items_ref = db.collection("orders").document(order_data["order_id"]).collection("order_items")
+            # Fetch ordered items
+            order_items_ref = order_doc.reference.collection('order_items')
             order_items_snapshot = order_items_ref.stream()
             order_items = [item.to_dict() for item in order_items_snapshot]
 
-            order_data["order_items"] = order_items  # Add fetched items to order data
+            order_data['order_items'] = order_items
             detailed_orders.append(order_data)
+
         return detailed_orders
+
 
     def update_status(self, payment_status, payment_method):
         self._payment_status = payment_status
@@ -139,12 +143,20 @@ class Bill:
         bill_ref.update({"table_id": self._table_id})
 
     def calculate_total_price(self):
-        """Calculates the total price of the bill by summing the total_price of each associated order."""
-        orders = self.get_orders_by_bill_id()  # Fetch orders using the provided method
+        # """Calculates the total price of the bill by summing the total_price of each associated order."""
+        # orders = self.get_orders_by_bill_id()  # Fetch orders using the provided method
+        # total_price = 0
+        # for order in orders:
+        #     total_price += order["total_price"]  # Add total_price from each order
+        # self._total_price = total_price
+        order_ref = db.collection('orders').where('bill_id', '==', self._bill_id)
+        order_snapshot = order_ref.stream()
+
         total_price = 0
-        for order in orders:
-            total_price += order.get("total_price", 0)  # Add total_price from each order
-        return total_price
+        for order_doc in order_snapshot:
+            order_data = order_doc.to_dict()
+            total_price += order_data.get('total_price', 0)
+        self._total_price = total_price
 
     def set_shift(self):
         current_hour = datetime.now().hour

@@ -1,43 +1,31 @@
 # api/resources/diner_resource.py
 from flask_restful import Resource, reqparse
 from firebase_admin import firestore
-from app.models import Diner
+from app.api.models.Diner import Diner
+
 
 
 class DinerResource(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('name', type=str)
+        self.parser.add_argument('phone_number', type=str)
+        self.parser.add_argument('gender', type=str)
+        self.parser.add_argument('birthday', type=str)
+
     def post(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument('name', type=str, required=True)
-        parser.add_argument('phone_number', type=str, required=True)
-        parser.add_argument('gender', type=str, required=True)
-        parser.add_argument('birthday', type=str, required=True)
-        args = parser.parse_args()
+        args = self.parser.parse_args()
 
-        name = args['name']
+        # try:
         phone_number = args['phone_number']
-        gender = args['gender']
-        birthday = args['birthday']
+        existing_diner = Diner.get_diner_by_phone_number(phone_number)
+        if existing_diner:
+            return {'error': 'Diner with the given phone number already exists'}, 400
 
-        try:
-            # Check if the phone number already exists
-            db = firestore.client()
-            existing_diner_ref = db.collection('diners').where('phone_number', '==', phone_number).limit(1).get()
+        new_diner = Diner(**args)  # Use dictionary unpacking
+        new_diner.create_diner()
+        return {'message': 'Diner registration successful'}, 201
 
-            if existing_diner_ref:
-                return {'error': 'Diner with the given phone number already exists'}, 400
+        # except Exception as e:
+        #     return {'error': str(e)}, 400
 
-            # Create a new diner instance
-            new_diner = Diner(
-                name=name,
-                phone_number=phone_number,
-                gender=gender,
-                birthday=birthday
-            )
-
-            # Add the diner data to the 'diners' collection in Firestore
-            diner_ref = db.collection('diners').add(new_diner.to_dict())
-
-            # Return diner information
-            return {'message': 'Diner registration successful'}, 201
-        except Exception as e:
-            return {'error': str(e)}, 400

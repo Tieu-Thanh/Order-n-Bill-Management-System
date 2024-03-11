@@ -17,7 +17,7 @@ firebase_admin_instance = Config.FIRESTORE
 app.config['FIREBASE_ADMIN'] = firebase_admin_instance
 
 app.register_blueprint(menu_api.menu_api_bp, url_prefix='/api/menu')
-app.register_blueprint(diner_api.diner_api_bp, url_prefix='/api/auth')
+app.register_blueprint(diner_api.diner_api_bp, url_prefix='/api/diners')
 app.register_blueprint(order_api.order_api_bp, url_prefix='/api/orders')
 app.register_blueprint(bill_api.bill_api_bp, url_prefix='/api/bills')
 

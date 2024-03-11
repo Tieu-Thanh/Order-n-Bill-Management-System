@@ -10,20 +10,6 @@ from firebase_admin import firestore
 
 db = firestore.client()
 
-# Create Bill:
-# POST /bills: This endpoint creates a new bill.
-
-# Retrieve Bill
-# GET /bills/{bill_id}: Retrieve a specific bill by its ID.
-# GET /bills/diner/{diner_id}: Retrieve bills for a specific diner.
-# GET /bills/workshift/{workshift_id}: Retrieve bills for a specific workshift.
-
-# Update Bill:
-# PUT /bills/{bill_id}: Update the status or details of a specific bill.
-
-# Delete Bill:
-# DELETE /bills/{bill_id}: Delete a specific bill by its ID.
-
 
 class BillDetailResource(Resource):
     def __init__(self):
@@ -85,6 +71,7 @@ class BillResource(Resource):
         args = self.parser.parse_args()
         bill = Bill(**args)
         bill.save()
+        bill.calculate_total_price()
         return {"message": "Bill created successfully",
                 "bill": bill.to_dict()}, 201
 
